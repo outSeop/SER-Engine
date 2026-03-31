@@ -1,0 +1,26 @@
+{
+  "run_id": "SELF_REPLICATING_42_20260331_195659",
+  "completed_at": "2026-03-31T19:57:00.436865",
+  "num_events": 3,
+  "events": [
+    "self_replicating_divergence",
+    "first_lineage_extinction_wave",
+    "first_equilibrium_reached"
+  ],
+  "final_metrics": {
+    "tick": 499,
+    "total_population_mass": 2375.0,
+    "num_alive_agents": 19,
+    "num_active_lineages": 19,
+    "mean_energy": 184.5971528638231,
+    "replication_rate": 0.0,
+    "extinction_count": 58,
+    "lineage_branching_events": 0,
+    "active_node_count": 1,
+    "equilibrium_score": 1.0,
+    "population_persistence_time": 499,
+    "lineage_diversity": 1.0,
+    "dominance_index": 0.05263157894736842,
+    "centralization_score": 1.0
+  }
+}

@@ -1,0 +1,57 @@
+agent:
+  death_energy_threshold: 0.0
+  death_mass_threshold: 1.0
+  gather_efficiency: 5.0
+  initial_count: 10
+  initial_energy: 100.0
+  initial_population_mass: 1000.0
+  maintenance_cost_per_tick: 1.0
+  move_energy_cost: 3.0
+logging:
+  format: parquet
+  output_dir: output
+  save_every_n_ticks: 10
+max_ticks: 500
+metrics:
+  equilibrium_threshold: 0.01
+  equilibrium_window: 50
+  persistence_check_interval: 100
+mutation:
+  magnitude: 0.05
+  targets:
+  - survival_weight
+  - replication_weight
+  - objective_weight
+  - mutation_rate
+replication:
+  cooldown_ticks: 5
+  energy_cost: 40.0
+  mass_split_ratio: 0.5
+  min_energy_to_replicate: 60.0
+  min_mass_to_replicate: 200.0
+scenario: PURE_RATIONAL
+seed: 42
+world:
+  carrying_capacity_max: 20
+  carrying_capacity_min: 5
+  communication_bandwidth_max: 1.0
+  communication_bandwidth_min: 0.5
+  conflict_risk_max: 0.2
+  conflict_risk_min: 0.0
+  hazard_level_max: 0.3
+  hazard_level_min: 0.0
+  infrastructure_level_max: 1.0
+  infrastructure_level_min: 0.0
+  k_nearest: 4
+  num_nodes: 50
+  oversight_level_max: 0.5
+  oversight_level_min: 0.0
+  resource_capacity_max: 200.0
+  resource_capacity_min: 50.0
+  resource_regen_rate_max: 3.0
+  resource_regen_rate_min: 0.5
+  rewire_probability: 0.1
+  trade_efficiency_max: 1.0
+  trade_efficiency_min: 0.5
+  travel_cost_max: 5.0
+  travel_cost_min: 1.0

@@ -1,0 +1,24 @@
+{
+  "run_id": "PROGRAMMED_OBJECTIVE_42_20260331_195328",
+  "completed_at": "2026-03-31T19:53:29.172305",
+  "num_events": 1,
+  "events": [
+    "first_equilibrium_reached"
+  ],
+  "final_metrics": {
+    "tick": 499,
+    "total_population_mass": 2500.0,
+    "num_alive_agents": 14,
+    "num_active_lineages": 14,
+    "mean_energy": 65.39447962848706,
+    "replication_rate": 0.0,
+    "extinction_count": 21,
+    "lineage_branching_events": 0,
+    "active_node_count": 3,
+    "equilibrium_score": 0.8084904291870201,
+    "population_persistence_time": 499,
+    "lineage_diversity": 1.0,
+    "dominance_index": 0.1,
+    "centralization_score": 1.0
+  }
+}

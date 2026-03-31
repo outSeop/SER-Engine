@@ -1,0 +1,11 @@
+[
+  {
+    "tick": 125,
+    "event_type": "first_equilibrium_reached",
+    "description": "System reached static equilibrium (score=0.952)",
+    "data": {
+      "equilibrium_score": 0.9523809523809523,
+      "num_alive": 10
+    }
+  }
+]

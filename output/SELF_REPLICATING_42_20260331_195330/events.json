@@ -1,0 +1,28 @@
+[
+  {
+    "tick": 0,
+    "event_type": "self_replicating_divergence",
+    "description": "Lineage count doubled initial population: 20 lineages",
+    "data": {
+      "num_lineages": 20,
+      "initial_count": 10
+    }
+  },
+  {
+    "tick": 40,
+    "event_type": "first_lineage_extinction_wave",
+    "description": "Extinction wave: 4 agents died this tick",
+    "data": {
+      "deaths_this_tick": 4
+    }
+  },
+  {
+    "tick": 196,
+    "event_type": "first_equilibrium_reached",
+    "description": "System reached static equilibrium (score=0.955)",
+    "data": {
+      "equilibrium_score": 0.9546390788373486,
+      "num_alive": 19
+    }
+  }
+]

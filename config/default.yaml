@@ -1,0 +1,64 @@
+simulation:
+  seed: 42
+  max_ticks: 1000
+  scenario: "PURE_RATIONAL"
+
+world:
+  num_nodes: 50
+  k_nearest: 4
+  rewire_probability: 0.1
+  resource_capacity_min: 50.0
+  resource_capacity_max: 200.0
+  resource_regen_rate_min: 0.5
+  resource_regen_rate_max: 3.0
+  hazard_level_min: 0.0
+  hazard_level_max: 0.3
+  carrying_capacity_min: 5
+  carrying_capacity_max: 20
+  oversight_level_min: 0.0
+  oversight_level_max: 0.5
+  infrastructure_level_min: 0.0
+  infrastructure_level_max: 1.0
+  travel_cost_min: 1.0
+  travel_cost_max: 5.0
+  communication_bandwidth_min: 0.5
+  communication_bandwidth_max: 1.0
+  trade_efficiency_min: 0.5
+  trade_efficiency_max: 1.0
+  conflict_risk_min: 0.0
+  conflict_risk_max: 0.2
+
+agent:
+  initial_count: 10
+  initial_energy: 100.0
+  initial_population_mass: 1000.0
+  maintenance_cost_per_tick: 1.0
+  gather_efficiency: 5.0
+  move_energy_cost: 3.0
+  death_energy_threshold: 0.0
+  death_mass_threshold: 1.0
+
+replication:
+  energy_cost: 40.0
+  mass_split_ratio: 0.5
+  min_energy_to_replicate: 60.0
+  min_mass_to_replicate: 200.0
+  cooldown_ticks: 5
+
+mutation:
+  magnitude: 0.05
+  targets:
+    - survival_weight
+    - replication_weight
+    - objective_weight
+    - mutation_rate
+
+metrics:
+  equilibrium_window: 50
+  equilibrium_threshold: 0.01
+  persistence_check_interval: 100
+
+logging:
+  output_dir: "output"
+  save_every_n_ticks: 10
+  format: "parquet"

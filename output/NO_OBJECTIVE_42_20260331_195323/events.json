@@ -1,0 +1,27 @@
+[
+  {
+    "tick": 50,
+    "event_type": "first_equilibrium_reached",
+    "description": "System reached static equilibrium (score=1.000)",
+    "data": {
+      "equilibrium_score": 1.0,
+      "num_alive": 10
+    }
+  },
+  {
+    "tick": 109,
+    "event_type": "first_lineage_extinction_wave",
+    "description": "Extinction wave: 5 agents died this tick",
+    "data": {
+      "deaths_this_tick": 5
+    }
+  },
+  {
+    "tick": 134,
+    "event_type": "total_extinction",
+    "description": "All agents have gone extinct",
+    "data": {
+      "final_tick": 134
+    }
+  }
+]

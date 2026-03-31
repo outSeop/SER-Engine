@@ -1,0 +1,39 @@
+experiments:
+  ser_comparison:
+    description: "Core SER hypothesis test: 5 scenarios side-by-side"
+    base_config: "config/default.yaml"
+    seeds: [42, 123, 456, 789, 1024]
+    max_ticks: 2000
+    scenarios:
+      - NO_OBJECTIVE
+      - PURE_RATIONAL
+      - SELF_PRESERVING
+      - PROGRAMMED_OBJECTIVE
+      - SELF_REPLICATING
+
+  replication_cost_sweep:
+    description: "Vary replication energy cost for SELF_REPLICATING"
+    base_config: "config/default.yaml"
+    seeds: [42, 123, 456]
+    scenarios:
+      - SELF_REPLICATING
+    parameter_sweep:
+      "replication.energy_cost": [20.0, 40.0, 60.0, 80.0]
+
+  mutation_rate_sweep:
+    description: "Vary mutation magnitude for SELF_REPLICATING"
+    base_config: "config/default.yaml"
+    seeds: [42, 123, 456]
+    scenarios:
+      - SELF_REPLICATING
+    parameter_sweep:
+      "mutation.magnitude": [0.01, 0.05, 0.10, 0.20]
+
+  small_world_vs_scalefree:
+    description: "Compare topologies for SELF_REPLICATING"
+    base_config: "config/default.yaml"
+    seeds: [42, 123, 456]
+    scenarios:
+      - SELF_REPLICATING
+    parameter_sweep:
+      "world.rewire_probability": [0.01, 0.1, 0.5, 1.0]
