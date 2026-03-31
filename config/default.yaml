@@ -37,6 +37,13 @@ agent:
   move_energy_cost: 3.0
   death_energy_threshold: 0.0
   death_mass_threshold: 1.0
+  rational_action_temperature: 0.15
+  rational_replication_externality_weight: 0.35
+  rational_replication_competition_penalty: 0.25
+  objective_resource_weight: 1.0
+  objective_coverage_weight: 0.35
+  objective_resilience_weight: 0.25
+  objective_replication_gain_threshold: 5.0
 
 replication:
   energy_cost: 40.0

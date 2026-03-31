@@ -19,6 +19,8 @@ def make_metrics(tick: int, mass: float, alive: int, lineages: int, nodes: int) 
         lineage_branching_events=0,
         active_node_count=nodes,
         equilibrium_score=0.0,
+        inertness_score=1.0,
+        structural_drift_score=0.0,
         population_persistence_time=tick,
         lineage_diversity=lineages / max(alive, 1),
         dominance_index=1.0 / max(lineages, 1),
@@ -48,7 +50,10 @@ def test_equilibrium_score_is_zero_when_insufficient_history():
     # Only 10 entries, window=50 → not enough history
     for i in range(10):
         collector.history.append(make_metrics(i, 1000, 10, 5, 20))
-    assert collector._compute_equilibrium_score() == pytest.approx(0.0)
+    assert collector._compute_equilibrium_score(
+        inertness_score=1.0,
+        structural_drift_score=0.0,
+    ) == pytest.approx(0.0)
 
 
 def test_equilibrium_score_near_one_for_constant_population():
@@ -57,7 +62,10 @@ def test_equilibrium_score_near_one_for_constant_population():
     # Perfect constant: no variation at all
     for i in range(60):
         collector.history.append(make_metrics(i, 1000.0, 10, 5, 20))
-    score = collector._compute_equilibrium_score()
+    score = collector._compute_equilibrium_score(
+        inertness_score=1.0,
+        structural_drift_score=0.0,
+    )
     assert score > 0.95, f"Expected high equilibrium score, got {score}"
 
 
@@ -71,7 +79,10 @@ def test_equilibrium_score_near_zero_for_fluctuating_population():
         alive = int(rng.integers(1, 50))
         nodes = int(rng.integers(1, 40))  # also fluctuate active_node_count
         collector.history.append(make_metrics(i, mass, alive, 3, nodes))
-    score = collector._compute_equilibrium_score()
+    score = collector._compute_equilibrium_score(
+        inertness_score=0.5,
+        structural_drift_score=0.5,
+    )
     assert score < 0.7, f"Expected low equilibrium score, got {score}"
 
 
@@ -150,7 +161,8 @@ def test_metrics_to_dict_has_all_keys():
     expected_keys = [
         "tick", "total_population_mass", "num_alive_agents", "num_active_lineages",
         "mean_energy", "replication_rate", "extinction_count", "lineage_branching_events",
-        "active_node_count", "equilibrium_score", "population_persistence_time",
+        "active_node_count", "equilibrium_score", "inertness_score", "structural_drift_score",
+        "population_persistence_time",
         "lineage_diversity", "dominance_index", "centralization_score",
     ]
     for k in expected_keys:

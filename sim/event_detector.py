@@ -82,13 +82,22 @@ class EventDetector:
     def _check_equilibrium(self, tick: int, m: TickMetrics) -> list[SimEvent]:
         events = []
         if "first_equilibrium_reached" not in self._fired:
-            if m.equilibrium_score >= 0.95:
+            if (
+                m.equilibrium_score >= 0.90
+                and m.inertness_score >= 0.90
+                and m.structural_drift_score <= 0.10
+            ):
                 self._fired.add("first_equilibrium_reached")
                 events.append(SimEvent(
                     tick=tick,
                     event_type="first_equilibrium_reached",
                     description=f"System reached static equilibrium (score={m.equilibrium_score:.3f})",
-                    data={"equilibrium_score": m.equilibrium_score, "num_alive": m.num_alive_agents},
+                    data={
+                        "equilibrium_score": m.equilibrium_score,
+                        "inertness_score": m.inertness_score,
+                        "structural_drift_score": m.structural_drift_score,
+                        "num_alive": m.num_alive_agents,
+                    },
                 ))
         return events
 
@@ -160,7 +169,7 @@ class EventDetector:
 
         # Programmed objective stagnation
         if scenario == StrategyType.PROGRAMMED_OBJECTIVE:
-            if m.equilibrium_score >= 0.90 and m.replication_rate == 0:
+            if m.equilibrium_score >= 0.90 and m.inertness_score >= 0.90 and m.replication_rate == 0:
                 self._stagnation_streak += 1
             else:
                 self._stagnation_streak = 0

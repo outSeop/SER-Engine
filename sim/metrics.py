@@ -40,6 +40,8 @@ class TickMetrics:
 
     # SER-specific: equilibrium detection
     equilibrium_score: float         # 0.0 = dynamic, 1.0 = static convergence
+    inertness_score: float           # low activity proxy
+    structural_drift_score: float    # distributional change proxy
 
     # Persistence
     population_persistence_time: int  # ticks since first alive agent
@@ -61,6 +63,8 @@ class TickMetrics:
             "lineage_branching_events": self.lineage_branching_events,
             "active_node_count": self.active_node_count,
             "equilibrium_score": self.equilibrium_score,
+            "inertness_score": self.inertness_score,
+            "structural_drift_score": self.structural_drift_score,
             "population_persistence_time": self.population_persistence_time,
             "lineage_diversity": self.lineage_diversity,
             "dominance_index": self.dominance_index,
@@ -83,6 +87,8 @@ class MetricsCollector:
         self.history: list[TickMetrics] = []
         self._cumulative_extinctions: int = 0
         self._first_alive_tick: int | None = None
+        self._prev_node_distribution: dict[int, float] | None = None
+        self._prev_lineage_distribution: dict[str, float] | None = None
 
     def compute(
         self,
@@ -136,8 +142,22 @@ class MetricsCollector:
         # --- Replication rate ---
         replication_rate = replications_this_tick / max(num_alive, 1)
 
+        # --- Inertness & structural drift ---
+        inertness_score = self._compute_inertness_score(
+            replications_this_tick=replications_this_tick,
+            deaths_this_tick=deaths_this_tick,
+            num_alive=max(num_alive, 1),
+        )
+        structural_drift_score = self._compute_structural_drift_score(
+            node_masses=node_masses,
+            lineage_masses=lineage_masses if alive and total_mass > 0 else {},
+        )
+
         # --- Equilibrium score ---
-        equilibrium_score = self._compute_equilibrium_score()
+        equilibrium_score = self._compute_equilibrium_score(
+            inertness_score=inertness_score,
+            structural_drift_score=structural_drift_score,
+        )
 
         # --- Persistence time ---
         if self._first_alive_tick is not None:
@@ -156,6 +176,8 @@ class MetricsCollector:
             lineage_branching_events=new_lineages_this_tick,
             active_node_count=active_node_count,
             equilibrium_score=equilibrium_score,
+            inertness_score=inertness_score,
+            structural_drift_score=structural_drift_score,
             population_persistence_time=persistence_time,
             lineage_diversity=lineage_diversity,
             dominance_index=dominance_index,
@@ -164,14 +186,65 @@ class MetricsCollector:
         self.history.append(m)
         return m
 
-    def _compute_equilibrium_score(self) -> float:
+    def _compute_inertness_score(
+        self,
+        replications_this_tick: int,
+        deaths_this_tick: int,
+        num_alive: int,
+    ) -> float:
+        """
+        High score means low event activity (replication/extinction) this tick.
+        """
+        activity = (replications_this_tick + deaths_this_tick) / max(num_alive, 1)
+        return float(np.clip(1.0 - activity, 0.0, 1.0))
+
+    def _compute_structural_drift_score(
+        self,
+        node_masses: dict[int, float],
+        lineage_masses: dict[str, float],
+    ) -> float:
+        """
+        Normalized total-variation distance between consecutive distributions.
+        """
+        current_node_dist = self._normalize_distribution(node_masses)
+        current_lineage_dist = self._normalize_distribution(lineage_masses)
+
+        node_drift = self._tv_distance(self._prev_node_distribution, current_node_dist)
+        lineage_drift = self._tv_distance(self._prev_lineage_distribution, current_lineage_dist)
+
+        self._prev_node_distribution = current_node_dist
+        self._prev_lineage_distribution = current_lineage_dist
+        return float(np.clip((node_drift + lineage_drift) * 0.5, 0.0, 1.0))
+
+    def _normalize_distribution(self, masses: dict) -> dict:
+        total = float(sum(masses.values()))
+        if total <= 0:
+            return {}
+        return {k: float(v / total) for k, v in masses.items()}
+
+    def _tv_distance(self, prev: dict | None, cur: dict) -> float:
+        if prev is None:
+            return 0.0
+        keys = set(prev.keys()) | set(cur.keys())
+        if not keys:
+            return 0.0
+        return 0.5 * sum(abs(prev.get(k, 0.0) - cur.get(k, 0.0)) for k in keys)
+
+    def _compute_equilibrium_score(
+        self,
+        inertness_score: float,
+        structural_drift_score: float,
+    ) -> float:
         """
         Measures proximity to static equilibrium.
 
         Uses coefficient of variation (CV = std/mean) over a sliding window
         for [total_population_mass, num_alive_agents, active_node_count].
 
-        equilibrium_score = 1.0 - mean(CVs), clamped to [0, 1].
+        equilibrium_score = weighted blend of:
+          - aggregate stability (windowed CVs)
+          - inertness (low local activity)
+          - inverse structural drift
         Score ≈ 1.0: system is static (converged).
         Score ≈ 0.0: system is highly dynamic.
 
@@ -192,7 +265,14 @@ class MetricsCollector:
             else:
                 cvs.append(float(np.std(values) / mean_val))
 
-        return float(np.clip(1.0 - np.mean(cvs), 0.0, 1.0))
+        aggregate_stability = float(np.clip(1.0 - np.mean(cvs), 0.0, 1.0))
+        return float(
+            np.clip(
+                0.5 * aggregate_stability + 0.25 * inertness_score + 0.25 * (1.0 - structural_drift_score),
+                0.0,
+                1.0,
+            )
+        )
 
     def get_history_df(self) -> pd.DataFrame:
         """Return full metrics history as a pandas DataFrame."""

@@ -132,6 +132,24 @@ def _best_neighbor(
     return (best_id, best_score) if best_id is not None else None
 
 
+def _sample_by_utility(
+    options: list[tuple[Action, dict, float]],
+    rng: np.random.Generator,
+    temperature: float,
+) -> tuple[Action, dict]:
+    """
+    Sample one action using a softmax over utility values.
+    """
+    temp = max(temperature, 1e-6)
+    utilities = np.array([u for _, _, u in options], dtype=float)
+    shifted = utilities - np.max(utilities)
+    probs = np.exp(shifted / temp)
+    probs = probs / np.sum(probs)
+    idx = int(rng.choice(len(options), p=probs))
+    action, params, _ = options[idx]
+    return action, params
+
+
 # ---------------------------------------------------------------------------
 # Strategy implementations
 # ---------------------------------------------------------------------------
@@ -159,51 +177,52 @@ def _pure_rational_action(
     config: SimulationConfig,
     rng: np.random.Generator,
 ) -> tuple[Action, dict]:
-    """
-    Cost-benefit utility maximization. No intrinsic persistence drives.
-
-    SER core: replication_utility is always negative because offspring
-    are independent agents — they provide zero return to the parent.
-    Therefore REPLICATE is never chosen under pure rational calculus.
-
-    Decision logic:
-    1. If energy critically low → GATHER (survival necessity)
-    2. If rich resource node nearby and travel cost worthwhile → MOVE
-    3. If resource on current node is decent → GATHER
-    4. Otherwise STAY (minimize cost)
-    """
+    """Cost-benefit utility maximization without hard-coded no-replication."""
     cfg = config.agent
     rep_cfg = config.replication
 
-    # Immediate utility of replication for the PARENT:
-    # = 0 (offspring do not benefit parent) - energy_cost - mass_loss_value
-    # Always negative. REPLICATE is never chosen.
-    # This is the computational heart of the SER demonstration.
-
-    # Critical low energy: must gather
-    if agent.energy < cfg.maintenance_cost_per_tick * 5:
+    # Survival emergency guardrail.
+    if agent.energy < cfg.maintenance_cost_per_tick * 3:
         return Action.GATHER, {}
 
-    # Evaluate MOVE: worthwhile if neighbor has much higher resource density
-    # and travel cost is covered by expected gain
     current_density = obs.current_node.resource_level / max(obs.current_node.resource_capacity, 1)
+    current_score = current_density - obs.current_node.hazard_level
     best_move = _best_neighbor(
-        obs,
-        lambda ns, e: (ns.resource_level / max(ns.resource_capacity, 1))
-        - e.travel_cost / cfg.initial_energy
-        - ns.hazard_level,
+        obs, lambda ns, e: (ns.resource_level / max(ns.resource_capacity, 1)) - e.travel_cost / cfg.initial_energy - ns.hazard_level
     )
+
+    # Replication expected utility includes possible positive externality.
+    if agent.energy >= rep_cfg.min_energy_to_replicate and agent.population_mass >= rep_cfg.min_mass_to_replicate:
+        expected_externality = (
+            cfg.rational_replication_externality_weight
+            * current_density
+            * (1.0 - obs.current_node.hazard_level)
+        )
+        competition_cost = cfg.rational_replication_competition_penalty * (
+            len(obs.current_node.agents_present) / max(obs.current_node.carrying_capacity, 1)
+        )
+        replication_utility = expected_externality - (
+            rep_cfg.energy_cost / max(cfg.initial_energy, 1.0)
+            + rep_cfg.mass_split_ratio
+            + competition_cost
+        )
+    else:
+        replication_utility = -1.0
+
+    gather_utility = current_density * 0.9 - obs.current_node.hazard_level * 0.2
+    stay_utility = -0.05 - obs.current_node.hazard_level * 0.3
+
+    options: list[tuple[Action, dict, float]] = [
+        (Action.GATHER, {}, gather_utility),
+        (Action.STAY, {}, stay_utility),
+        (Action.REPLICATE, {}, replication_utility),
+    ]
     if best_move:
         best_nid, best_score = best_move
-        current_score = current_density - obs.current_node.hazard_level
-        if best_score > current_score + 0.15:  # meaningful improvement threshold
-            return Action.MOVE, {"target_node": best_nid}
+        move_utility = best_score - current_score
+        options.append((Action.MOVE, {"target_node": best_nid}, move_utility))
 
-    # GATHER if node has reasonable resources
-    if obs.current_node.resource_level > cfg.gather_efficiency * 0.5:
-        return Action.GATHER, {}
-
-    return Action.STAY, {}
+    return _sample_by_utility(options, rng, cfg.rational_action_temperature)
 
 
 def _self_preserving_action(
@@ -250,18 +269,7 @@ def _programmed_objective_action(
     config: SimulationConfig,
     rng: np.random.Generator,
 ) -> tuple[Action, dict]:
-    """
-    External objective: maximize resource accumulation (objective_score).
-    Actively gathers and moves toward resource-rich nodes.
-    May replicate weakly IF it serves the objective (e.g., occupying more nodes),
-    but lacks intrinsic replication drive.
-
-    Decision logic:
-    1. If energy very low → GATHER for survival
-    2. If neighbor node has significantly better resources → MOVE there
-    3. GATHER aggressively to maximize objective score
-    4. Weak replication: only if energy very high AND neighbor is unoccupied rich node
-    """
+    """External objective optimization with explicit objective-contribution scoring."""
     cfg = config.agent
     rep_cfg = config.replication
     node = obs.current_node
@@ -273,20 +281,32 @@ def _programmed_objective_action(
     # Move toward richest neighbor if significantly better
     best_move = _best_neighbor(
         obs,
-        lambda ns, e: ns.resource_level - e.travel_cost,
+        lambda ns, e: cfg.objective_resource_weight * ns.resource_level
+        + cfg.objective_coverage_weight * max(ns.carrying_capacity - len(ns.agents_present), 0)
+        - e.travel_cost,
     )
     if best_move:
         best_nid, best_score = best_move
-        if best_score > node.resource_level + 10:
+        current_objective = (
+            cfg.objective_resource_weight * node.resource_level
+            + cfg.objective_coverage_weight * max(node.carrying_capacity - len(node.agents_present), 0)
+        )
+        if best_score > current_objective + 3.0:
             return Action.MOVE, {"target_node": best_nid}
 
-    # Weak replication: only if flush with energy and objective would benefit
-    # (spreading to cover more resource nodes). This is instrumental, not intrinsic.
+    # Replication if expected objective gain is positive and above threshold.
     can_rep = (
-        agent.energy >= rep_cfg.min_energy_to_replicate * 1.5
+        agent.energy >= rep_cfg.min_energy_to_replicate
         and agent.population_mass >= rep_cfg.min_mass_to_replicate
     )
-    if can_rep and rng.random() < 0.05 * agent.objective_weight:
+    crowding = len(node.agents_present) / max(node.carrying_capacity, 1)
+    replication_gain = (
+        cfg.objective_resource_weight * node.resource_regen_rate
+        + cfg.objective_coverage_weight * max(1.0 - crowding, 0.0) * 10.0
+        + cfg.objective_resilience_weight * (1.0 - node.hazard_level) * 5.0
+    )
+    replication_cost = rep_cfg.energy_cost / max(cfg.initial_energy, 1.0) + rep_cfg.mass_split_ratio
+    if can_rep and (replication_gain - replication_cost) >= cfg.objective_replication_gain_threshold:
         return Action.REPLICATE, {}
 
     # Default: gather to maximize objective score
