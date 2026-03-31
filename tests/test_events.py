@@ -14,6 +14,8 @@ def make_metrics(
     num_alive: int = 10,
     num_lineages: int = 5,
     extinction_count: int = 0,
+    inertness_score: float = 1.0,
+    structural_drift_score: float = 0.0,
 ) -> TickMetrics:
     return TickMetrics(
         tick=tick,
@@ -26,6 +28,8 @@ def make_metrics(
         lineage_branching_events=0,
         active_node_count=10,
         equilibrium_score=equilibrium_score,
+        inertness_score=inertness_score,
+        structural_drift_score=structural_drift_score,
         population_persistence_time=tick,
         lineage_diversity=0.5,
         dominance_index=0.2,

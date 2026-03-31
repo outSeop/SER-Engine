@@ -139,13 +139,11 @@ def generate_report(
             f.write(grouped.to_markdown())
             f.write("\n\n")
 
-        f.write("## SER Hypothesis Interpretation\n\n")
+        f.write("## Data-driven Notes\n\n")
         f.write(
-            "- **PURE_RATIONAL**: Expected to reach static equilibrium quickly with zero replication.\n"
-            "- **NO_OBJECTIVE**: Expected near-zero activity, immediate stasis.\n"
-            "- **SELF_PRESERVING**: Expected stable but static, no replication.\n"
-            "- **PROGRAMMED_OBJECTIVE**: Expected active but low/no sustained replication.\n"
-            "- **SELF_REPLICATING**: Expected dynamic, persistent replication, lineage divergence.\n\n"
+            "- This report intentionally avoids hard-coded expected outcomes.\n"
+            "- Compare scenarios using observed statistics above (means/std across runs).\n"
+            "- If variance is high, increase seeds before drawing conclusions.\n\n"
         )
 
     print(f"  Saved: {report_path}")

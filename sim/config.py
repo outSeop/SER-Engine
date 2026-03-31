@@ -76,6 +76,13 @@ class AgentConfig:
     move_energy_cost: float = 3.0
     death_energy_threshold: float = 0.0
     death_mass_threshold: float = 1.0
+    rational_action_temperature: float = 0.15
+    rational_replication_externality_weight: float = 0.35
+    rational_replication_competition_penalty: float = 0.25
+    objective_resource_weight: float = 1.0
+    objective_coverage_weight: float = 0.35
+    objective_resilience_weight: float = 0.25
+    objective_replication_gain_threshold: float = 5.0
 
 
 @dataclass
